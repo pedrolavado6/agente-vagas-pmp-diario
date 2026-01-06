@@ -10,12 +10,26 @@ print("DEBUG: Script iniciado")
 # CONFIGURAÇÃO
 # -----------------------
 feeds = [
+    # Indeed (alta cobertura)
     "https://www.indeed.com/rss?q=project+manager+remote",
     "https://www.indeed.co.uk/rss?q=project+manager+remote",
-    "https://remoteok.com/remote-pm-jobs.rss",
-    "https://weworkremotely.com/categories/remote-management-and-finance-jobs.rss"
-]
+    "https://www.indeed.ie/rss?q=project+manager+remote",
+    "https://www.indeed.de/rss?q=project+manager+remote",
+    "https://www.indeed.nl/rss?q=project+manager+remote",
 
+    # Remote-first
+    "https://remoteok.com/remote-pm-jobs.rss",
+    "https://www.eu-remote-jobs.com/rss",
+    "https://remotive.com/remote-jobs/project-management/rss",
+    "https://jobicy.com/rss",
+
+    # Empresas tech e startups sérias
+    "https://wellfound.com/jobs.rss?role=project-manager",
+    "https://weworkremotely.com/categories/remote-management-and-finance-jobs.rss",
+
+    # Nómadas digitais / salários altos
+    "https://www.workingnomads.com/jobs/rss"
+]
 repo_dir = os.getenv("GITHUB_WORKSPACE", ".")
 data_str = datetime.utcnow().strftime("%Y-%m-%d")
 
