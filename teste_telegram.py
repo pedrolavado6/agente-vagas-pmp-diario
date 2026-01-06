@@ -2,7 +2,7 @@ import os
 import requests
 
 TOKEN = os.getenv("8444083307:AAGuVa0LorqzVoX2IXPa75brXrN0DKrLGWU")
-CHAT_ID = os.getenv("995833336")
+CHAT_ID = os.getenv("5096956870")
 
 message = "✅ Teste de envio do bot, funciona! By PL"
 
