@@ -57,3 +57,18 @@ with open("STATUS.txt", "w", encoding="utf-8") as f:
     f.write(status_text)
 
 print(status_text)
+
+from datetime import datetime
+
+status_lines = []
+status_lines.append(f"Data: {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}")
+
+if len(df) == 0:
+    status_lines.append("⚠️ Nenhuma vaga encontrada hoje.")
+else:
+    status_lines.append(f"✅ {len(df)} vagas encontradas.")
+
+with open("STATUS.txt", "w", encoding="utf-8") as f:
+    f.write("\n".join(status_lines))
+
+print("\n".join(status_lines))
