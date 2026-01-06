@@ -4,7 +4,11 @@ from datetime import datetime
 import requests
 import os
 
-# Feeds
+print("DEBUG: Script iniciado")
+
+# -----------------------
+# CONFIGURAÇÃO
+# -----------------------
 feeds = [
     "https://www.indeed.com/rss?q=project+manager+pmp+remote",
     "https://remoteok.com/remote-pm-jobs.rss",
@@ -13,59 +17,75 @@ feeds = [
 
 keywords = ["pmp", "project manager", "program manager", "pmo", "senior project"]
 
-# Buscar vagas
+repo_dir = os.getenv("GITHUB_WORKSPACE", ".")
+data_str = datetime.utcnow().strftime("%Y-%m-%d")
+
+# -----------------------
+# BUSCAR VAGAS
+# -----------------------
 vagas = []
 for url in feeds:
     feed = feedparser.parse(url)
     for e in feed.entries:
         vagas.append({
-            "Data": datetime.utcnow().strftime("%Y-%m-%d"),
-            "Titulo": e.get("title", "Sem título"),
+            "Data": data_str,
+            "Título": e.get("title", "Sem título"),
             "Empresa": e.get("author", "Não especificado"),
-            "Link": e.get("link", ""),
-            "Resumo": e.get("summary", "")
+            "Link": e.get("link", "")
         })
 
 df = pd.DataFrame(vagas)
-df = df[df["Resumo"].str.lower().str.contains("|".join(keywords), na=False)]
-df = df.drop_duplicates(subset=["Link"])
 
-# Salvar arquivos
-data_str = datetime.utcnow().strftime("%Y-%m-%d")
-csv_filename = f"vagas_{data_str}.csv"
-html_filename = f"vagas_{data_str}.html"
+if not df.empty:
+    df = df[df["Título"].str.lower().str.contains("|".join(keywords), na=False)]
+    df = df.drop_duplicates(subset=["Link"])
 
-df.to_csv(csv_filename, index=False)
-df.to_html(html_filename, index=False)
+# -----------------------
+# GUARDAR FICHEIROS
+# -----------------------
+csv_path = os.path.join(repo_dir, f"vagas_{data_str}.csv")
+html_path = os.path.join(repo_dir, f"vagas_{data_str}.html")
+status_path = os.path.join(repo_dir, "STATUS.txt")
 
-# Criar status.txt
-status_lines = [f"Data: {data_str} UTC"]
-status_lines.append(f"✅ {len(df)} vagas encontradas." if len(df) > 0 else "⚠️ Nenhuma vaga encontrada hoje.")
+df.to_csv(csv_path, index=False)
+df.to_html(html_path, index=False)
 
-with open("STATUS.txt", "w", encoding="utf-8") as f:
-    f.write("\n".join(status_lines))
+# -----------------------
+# STATUS
+# -----------------------
+if df.empty:
+    status_text = f"Data: {data_str} UTC\n⚠️ Nenhuma vaga encontrada."
+else:
+    status_text = f"Data: {data_str} UTC\n✅ {len(df)} vagas encontradas."
 
-print("\n".join(status_lines))
+with open(status_path, "w", encoding="utf-8") as f:
+    f.write(status_text)
 
-# Envio para Telegram
+print(status_text)
+
+# -----------------------
+# TELEGRAM (TEXTO SIMPLES)
+# -----------------------
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 if TOKEN and CHAT_ID:
     try:
-        with open(html_filename, "r", encoding="utf-8") as f:
-            html_content = f.read()
+        resumo = status_text + "\n\nTop vagas:\n"
 
-        max_len = 3500
-        message = "\n".join(status_lines) + "\n\n" + html_content[:max_len]
+        for _, row in df.head(5).iterrows():
+            resumo += f"- {row['Título']}\n{row['Link']}\n\n"
 
         url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-        payload = {"chat_id": CHAT_ID, "text": message, "parse_mode": "HTML", "disable_web_page_preview": True}
+        payload = {
+            "chat_id": CHAT_ID,
+            "text": resumo
+        }
 
-        resp = requests.post(url, data=payload)
-        print("Telegram:", resp.json())
+        r = requests.post(url, data=payload)
+        print("Telegram:", r.json())
 
     except Exception as e:
-        print("⚠️ Erro ao enviar Telegram:", e)
+        print("Erro Telegram:", e)
 else:
-    print("⚠️ TELEGRAM_TOKEN ou TELEGRAM_CHAT_ID não definidos. Mensagem não enviada.")
+    print("Secrets do Telegram não disponíveis")
