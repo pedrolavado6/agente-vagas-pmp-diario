@@ -45,7 +45,7 @@ with open("STATUS.txt","w",encoding="utf-8") as f:
 
 # --- Enviar para Telegram ---
 token = os.getenv("8444083307:AAGuVa0LorqzVoX2IXPa75brXrN0DKrLGWU")
-chat_id = os.getenv("995833336")
+chat_id = os.getenv("5096956870")
 
 if token and chat_id:
     # Ler HTML
