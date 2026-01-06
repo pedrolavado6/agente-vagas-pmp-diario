@@ -43,27 +43,26 @@ status_text = f"📊 Vagas PMP – {data_str}\nTotal vagas: {len(df)}"
 with open("STATUS.txt","w",encoding="utf-8") as f:
     f.write(status_text)
 
-# --- Enviar para Telegram ---
-token = os.getenv("8444083307:AAGuVa0LorqzVoX2IXPa75brXrN0DKrLGWU")
-chat_id = os.getenv("5096956870")
+import requests
+import os
 
-if token and chat_id:
-    # Ler HTML
-    with open(html_filename,"r",encoding="utf-8") as f:
+TOKEN = os.getenv("8444083307:AAGuVa0LorqzVoX2IXPa75brXrN0DKrLGWU")
+CHAT_ID = os.getenv("5096956870")
+
+if TOKEN and CHAT_ID:
+    with open(html_filename, "r", encoding="utf-8") as f:
         html_content = f.read()
 
-    # Mensagem com limite de caracteres
-    max_len = 3500
-    message = status_text + "\n\n" + html_content[:max_len]
+    # Telegram tem limite de caracteres; pode enviar resumo + link para GitHub
+    message = f"📊 Vagas PMP – {data_str}\nTotal vagas: {len(df)}\n\n" + html_content[:3500]
 
-    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     payload = {
-        "chat_id": chat_id,
+        "chat_id": CHAT_ID,
         "text": message,
         "parse_mode": "HTML",
         "disable_web_page_preview": True
     }
 
-    requests.post(url, data=payload)
-
-print("Execução completa. Status enviado ao Telegram.")
+    resp = requests.post(url, data=payload)
+    print(resp.json())
