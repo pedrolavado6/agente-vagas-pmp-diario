@@ -68,6 +68,19 @@ if len(df) == 0:
 else:
     status_lines.append(f"✅ {len(df)} vagas encontradas.")
 
+import requests
+import os
+
+TOKEN = os.getenv("8444083307:AAGuVa0LorqzVoX2IXPa75brXrN0DKrLGWU")
+CHAT_ID = os.getenv("995833336")
+
+if TOKEN and CHAT_ID:
+    message = "Teste enviado com sucesso ✅"
+    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    payload = {"chat_id": CHAT_ID, "text": message}
+    r = requests.post(url, data=payload)
+    print(r.json())
+
 with open("STATUS.txt", "w", encoding="utf-8") as f:
     f.write("\n".join(status_lines))
 
