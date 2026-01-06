@@ -1,0 +1,33 @@
+name: Agente diário de vagas PMP
+
+on:
+  schedule:
+    - cron: '0 9 * * 1-5'   # Dias úteis às 09h00 GMT
+  workflow_dispatch:
+
+jobs:
+  run-agent:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repositório
+        uses: actions/checkout@v3
+
+      - name: Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Instalar dependências
+        run: pip install feedparser pandas
+
+      - name: Executar agente
+        run: python buscar_vagas.py
+
+      - name: Guardar resultados
+        run: |
+          git config user.name "agente-bot"
+          git config user.email "bot@github.com"
+          git add vagas_*.csv vagas_*.html
+          git commit -m "Atualização automática diária" || echo "Sem alterações"
+          git push
