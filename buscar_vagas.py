@@ -41,3 +41,19 @@ df.to_html(f"vagas_{data}.html", index=False)
 
 print("Execução concluída com sucesso.")
 print(f"Registos encontrados: {len(df)}")
+
+import os
+
+status = []
+
+if len(df) == 0:
+    status.append("⚠️ Nenhuma vaga encontrada hoje.")
+else:
+    status.append(f"✅ {len(df)} vagas encontradas.")
+
+status_text = "\n".join(status)
+
+with open("STATUS.txt", "w", encoding="utf-8") as f:
+    f.write(status_text)
+
+print(status_text)
