@@ -1,2 +1,4 @@
 Data: 2026-01-06 UTC
-⚠️ Nenhuma vaga encontrada.
+Total de vagas: 8
+PMP explícito: 0
+PMP desejável: 8
