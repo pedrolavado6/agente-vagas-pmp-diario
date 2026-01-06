@@ -10,44 +10,34 @@ print("DEBUG: Script iniciado")
 # CONFIGURAÇÃO
 # -----------------------
 feeds = [
-    # Indeed (alta cobertura)
     "https://www.indeed.com/rss?q=project+manager+remote",
     "https://www.indeed.co.uk/rss?q=project+manager+remote",
     "https://www.indeed.ie/rss?q=project+manager+remote",
-    "https://www.indeed.de/rss?q=project+manager+remote",
-    "https://www.indeed.nl/rss?q=project+manager+remote",
-
-    # Remote-first
     "https://remoteok.com/remote-pm-jobs.rss",
-    "https://www.eu-remote-jobs.com/rss",
     "https://remotive.com/remote-jobs/project-management/rss",
-    "https://jobicy.com/rss",
-
-    # Empresas tech e startups sérias
-    "https://wellfound.com/jobs.rss?role=project-manager",
-    "https://weworkremotely.com/categories/remote-management-and-finance-jobs.rss",
-
-    # Nómadas digitais / salários altos
-    "https://www.workingnomads.com/jobs/rss"
+    "https://www.weworkremotely.com/categories/remote-management-and-finance-jobs.rss",
+    "https://www.workingnomads.com/jobs/rss",
+    "https://jobicy.com/rss"
 ]
+
 repo_dir = os.getenv("GITHUB_WORKSPACE", ".")
 data_str = datetime.utcnow().strftime("%Y-%m-%d")
 
 # -----------------------
 # FUNÇÕES AUXILIARES
 # -----------------------
-def classificar_salario(texto: str) -> str:
+def classificar_pmp(texto):
+    return "PMP explícito" if "pmp" in texto.lower() else "PMP desejável"
+
+def classificar_salario(texto):
     t = texto.lower()
     if any(x in t for x in ["director", "principal", "head", "vp"]):
         return "€€€€"
     if any(x in t for x in ["senior", "lead", "staff"]):
         return "€€€"
-    if any(x in t for x in ["mid", "manager"]):
+    if any(x in t for x in ["manager"]):
         return "€€"
     return "€"
-
-def classificar_pmp(texto: str) -> str:
-    return "PMP explícito" if "pmp" in texto.lower() else "PMP desejável"
 
 # -----------------------
 # BUSCAR VAGAS
@@ -91,10 +81,10 @@ pmp_exp = len(df[df["Classificação PMP"] == "PMP explícito"])
 pmp_des = len(df[df["Classificação PMP"] == "PMP desejável"])
 
 status_text = (
-    f"Data: {data_str} UTC\n"
-    f"Total de vagas: {total}\n"
-    f"PMP explícito: {pmp_exp}\n"
-    f"PMP desejável: {pmp_des}"
+    f"📅 {data_str} UTC\n"
+    f"📊 Total de vagas: {total}\n"
+    f"🎓 PMP explícito: {pmp_exp}\n"
+    f"🧩 PMP desejável: {pmp_des}"
 )
 
 with open(status_path, "w", encoding="utf-8") as f:
@@ -103,33 +93,39 @@ with open(status_path, "w", encoding="utf-8") as f:
 print(status_text)
 
 # -----------------------
-# TELEGRAM (SEMPRE ENVIA)
+# TELEGRAM
 # -----------------------
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
+def enviar_texto(msg):
+    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    requests.post(url, data={"chat_id": CHAT_ID, "text": msg})
+
+def enviar_ficheiro(path):
+    url = f"https://api.telegram.org/bot{TOKEN}/sendDocument"
+    with open(path, "rb") as f:
+        requests.post(url, files={"document": f}, data={"chat_id": CHAT_ID})
+
 if TOKEN and CHAT_ID:
     try:
-        msg = status_text + "\n\nTop vagas:\n"
-
+        # 1️⃣ Mensagem resumo
+        resumo = status_text + "\n\nTop vagas:\n"
         for _, row in df.sort_values("Ranking Salarial", ascending=False).head(5).iterrows():
-            msg += (
-                f"- {row['Título']}\n"
-                f"  {row['Classificação PMP']} | {row['Ranking Salarial']}\n"
-                f"  {row['Link']}\n\n"
-            )
+            resumo += f"- {row['Título']}\n{row['Link']}\n\n"
 
         if total == 0:
-            msg += "\n⚠️ Nenhuma vaga encontrada hoje."
+            resumo += "⚠️ Nenhuma vaga encontrada hoje."
 
-        url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-        payload = {
-            "chat_id": CHAT_ID,
-            "text": msg
-        }
+        enviar_texto(resumo)
 
-        r = requests.post(url, data=payload)
-        print("Telegram:", r.json())
+        # 2️⃣ Enviar CSV
+        enviar_ficheiro(csv_path)
+
+        # 3️⃣ Enviar HTML
+        enviar_ficheiro(html_path)
+
+        print("Telegram: mensagens e anexos enviados com sucesso")
 
     except Exception as e:
         print("Erro Telegram:", e)
