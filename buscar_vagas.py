@@ -13,9 +13,13 @@ feeds = [
     "https://www.indeed.com/rss?q=project+manager+pmp+remote",
     "https://remoteok.com/remote-pm-jobs.rss",
     "https://weworkremotely.com/categories/remote-management-and-finance-jobs.rss"
+    "https://www.indeed.com/rss?q=project+manager+remote&fromage=1"
+    "https://www.indeed.co.uk/rss?q=project+manager+remote"
+    "https://www.indeed.ie/rss?q=project+manager+remote"
+
 ]
 
-keywords = ["pmp", "project manager", "program manager", "pmo", "senior project"]
+keywords = ["project manager", "program manager", "pmo", "senior project"]
 
 repo_dir = os.getenv("GITHUB_WORKSPACE", ".")
 data_str = datetime.utcnow().strftime("%Y-%m-%d")
