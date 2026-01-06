@@ -12,9 +12,7 @@ feeds = [
     "https://remoteok.com/remote-pm-jobs.rss",
     "https://weworkremotely.com/categories/remote-management-and-finance-jobs.rss"
 ]
-
-# Palavras-chave para filtrar vagas
-keywords = ["pmp", "project manager", "program manager", "pmo", "senior project"]
+keywords = ["pmp","project manager","program manager","pmo","senior project"]
 
 # -----------------------
 # BUSCA DAS VAGAS
@@ -25,19 +23,14 @@ for url in feeds:
     for e in feed.entries:
         vagas.append({
             "Data": datetime.utcnow().strftime("%Y-%m-%d"),
-            "Titulo": e.get("title", "Sem título"),
-            "Empresa": e.get("author", "Não especificado"),
-            "Link": e.get("link", ""),
-            "Resumo": e.get("summary", "")
+            "Titulo": e.get("title","Sem título"),
+            "Empresa": e.get("author","Não especificado"),
+            "Link": e.get("link",""),
+            "Resumo": e.get("summary","")
         })
 
-# Converter para DataFrame
 df = pd.DataFrame(vagas)
-
-# Filtrar por palavras-chave
 df = df[df["Resumo"].str.lower().str.contains("|".join(keywords), na=False)]
-
-# Remover duplicados
 df = df.drop_duplicates(subset=["Link"])
 
 # -----------------------
@@ -53,12 +46,8 @@ df.to_html(html_filename, index=False)
 # -----------------------
 # CRIAR STATUS.TXT
 # -----------------------
-status_lines = []
-status_lines.append(f"Data: {data_str} UTC")
-if len(df) == 0:
-    status_lines.append("⚠️ Nenhuma vaga encontrada hoje.")
-else:
-    status_lines.append(f"✅ {len(df)} vagas encontradas.")
+status_lines = [f"Data: {data_str} UTC"]
+status_lines.append(f"✅ {len(df)} vagas encontradas." if len(df) > 0 else "⚠️ Nenhuma vaga encontrada hoje.")
 
 with open("STATUS.txt", "w", encoding="utf-8") as f:
     f.write("\n".join(status_lines))
@@ -73,28 +62,19 @@ CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 if TOKEN and CHAT_ID:
     try:
-        # Ler HTML completo
         with open(html_filename, "r", encoding="utf-8") as f:
             html_content = f.read()
 
-        # Limitar a 3500 caracteres (Telegram tem limite)
+        # Limite Telegram
         max_len = 3500
         message = "\n".join(status_lines) + "\n\n" + html_content[:max_len]
 
         url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-        payload = {
-            "chat_id": CHAT_ID,
-            "text": message,
-            "parse_mode": "HTML",
-            "disable_web_page_preview": True
-        }
+        payload = {"chat_id": CHAT_ID, "text": message, "parse_mode": "HTML", "disable_web_page_preview": True}
 
-        response = requests.post(url, data=payload)
-        result = response.json()
-        print("Telegram:", result)
+        resp = requests.post(url, data=payload)
+        print("Telegram:", resp.json())
 
-        if not result.get("ok", False):
-            print("⚠️ Falha ao enviar mensagem para Telegram:", result)
     except Exception as e:
         print("⚠️ Erro ao enviar Telegram:", e)
 else:
