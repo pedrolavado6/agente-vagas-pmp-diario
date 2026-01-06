@@ -68,8 +68,8 @@ print("\n".join(status_lines))
 # -----------------------
 # ENVIO PARA TELEGRAM
 # -----------------------
-TOKEN = os.getenv("8444083307:AAGuVa0LorqzVoX2IXPa75brXrN0DKrLGWU")
-CHAT_ID = os.getenv("5096956870")
+TOKEN = os.getenv("TELEGRAM_TOKEN")
+CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 if TOKEN and CHAT_ID:
     try:
