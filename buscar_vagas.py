@@ -10,39 +10,54 @@ print("DEBUG: Script iniciado")
 # CONFIGURAÇÃO
 # -----------------------
 feeds = [
-    "https://www.indeed.com/rss?q=project+manager+pmp+remote",
+    "https://www.indeed.com/rss?q=project+manager+remote",
+    "https://www.indeed.co.uk/rss?q=project+manager+remote",
     "https://remoteok.com/remote-pm-jobs.rss",
     "https://weworkremotely.com/categories/remote-management-and-finance-jobs.rss"
-    "https://www.indeed.com/rss?q=project+manager+remote&fromage=1"
-    "https://www.indeed.co.uk/rss?q=project+manager+remote"
-    "https://www.indeed.ie/rss?q=project+manager+remote"
-
 ]
-
-keywords = ["project manager", "program manager", "pmo", "senior project"]
 
 repo_dir = os.getenv("GITHUB_WORKSPACE", ".")
 data_str = datetime.utcnow().strftime("%Y-%m-%d")
 
 # -----------------------
+# FUNÇÕES AUXILIARES
+# -----------------------
+def classificar_salario(texto: str) -> str:
+    t = texto.lower()
+    if any(x in t for x in ["director", "principal", "head", "vp"]):
+        return "€€€€"
+    if any(x in t for x in ["senior", "lead", "staff"]):
+        return "€€€"
+    if any(x in t for x in ["mid", "manager"]):
+        return "€€"
+    return "€"
+
+def classificar_pmp(texto: str) -> str:
+    return "PMP explícito" if "pmp" in texto.lower() else "PMP desejável"
+
+# -----------------------
 # BUSCAR VAGAS
 # -----------------------
 vagas = []
+
 for url in feeds:
     feed = feedparser.parse(url)
     for e in feed.entries:
-        vagas.append({
-            "Data": data_str,
-            "Título": e.get("title", "Sem título"),
-            "Empresa": e.get("author", "Não especificado"),
-            "Link": e.get("link", "")
-        })
+        titulo = e.get("title", "")
+        resumo = e.get("summary", "")
+        texto = f"{titulo} {resumo}"
 
-df = pd.DataFrame(vagas)
+        if any(k in texto.lower() for k in ["project", "program", "pmo"]):
+            vagas.append({
+                "Data": data_str,
+                "Título": titulo,
+                "Empresa": e.get("author", "Não especificado"),
+                "Link": e.get("link", ""),
+                "Classificação PMP": classificar_pmp(texto),
+                "Ranking Salarial": classificar_salario(texto)
+            })
 
-if not df.empty:
-    df = df[df["Título"].str.lower().str.contains("|".join(keywords), na=False)]
-    df = df.drop_duplicates(subset=["Link"])
+df = pd.DataFrame(vagas).drop_duplicates(subset=["Link"])
 
 # -----------------------
 # GUARDAR FICHEIROS
@@ -57,10 +72,16 @@ df.to_html(html_path, index=False)
 # -----------------------
 # STATUS
 # -----------------------
-if df.empty:
-    status_text = f"Data: {data_str} UTC\n⚠️ Nenhuma vaga encontrada."
-else:
-    status_text = f"Data: {data_str} UTC\n✅ {len(df)} vagas encontradas."
+total = len(df)
+pmp_exp = len(df[df["Classificação PMP"] == "PMP explícito"])
+pmp_des = len(df[df["Classificação PMP"] == "PMP desejável"])
+
+status_text = (
+    f"Data: {data_str} UTC\n"
+    f"Total de vagas: {total}\n"
+    f"PMP explícito: {pmp_exp}\n"
+    f"PMP desejável: {pmp_des}"
+)
 
 with open(status_path, "w", encoding="utf-8") as f:
     f.write(status_text)
@@ -68,22 +89,29 @@ with open(status_path, "w", encoding="utf-8") as f:
 print(status_text)
 
 # -----------------------
-# TELEGRAM (TEXTO SIMPLES)
+# TELEGRAM (SEMPRE ENVIA)
 # -----------------------
 TOKEN = os.getenv("TELEGRAM_TOKEN")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 if TOKEN and CHAT_ID:
     try:
-        resumo = status_text + "\n\nTop vagas:\n"
+        msg = status_text + "\n\nTop vagas:\n"
 
-        for _, row in df.head(5).iterrows():
-            resumo += f"- {row['Título']}\n{row['Link']}\n\n"
+        for _, row in df.sort_values("Ranking Salarial", ascending=False).head(5).iterrows():
+            msg += (
+                f"- {row['Título']}\n"
+                f"  {row['Classificação PMP']} | {row['Ranking Salarial']}\n"
+                f"  {row['Link']}\n\n"
+            )
+
+        if total == 0:
+            msg += "\n⚠️ Nenhuma vaga encontrada hoje."
 
         url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
         payload = {
             "chat_id": CHAT_ID,
-            "text": resumo
+            "text": msg
         }
 
         r = requests.post(url, data=payload)
